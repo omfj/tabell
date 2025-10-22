@@ -1,26 +1,61 @@
 use scraper::ElementRef;
-use tabled::{settings::Style, Table, Tabled};
+use tabled::{Table, Tabled, settings::Style};
 
 const TABLE_URL: &str = "https://www.eliteserien.no/tabell";
 
 #[derive(Tabled)]
 struct Team {
+    /// The position in the league table
+    #[tabled(rename = "Pos")]
+    position: usize,
+
+    /// The name of the team
     #[tabled(rename = "Team")]
     name: String,
+
+    /// Number of games played
     #[tabled(rename = "Played")]
     played: u32,
+
+    /// Number of wins
     #[tabled(rename = "W")]
     wins: u32,
+
+    /// Number of draws
     #[tabled(rename = "D")]
     draws: u32,
+
+    /// Number of losses
     #[tabled(rename = "L")]
     losses: u32,
+
+    /// Goals scored by the team
     #[tabled(rename = "+")]
     goals_for: u32,
+
+    /// Goals conceded by the team
     #[tabled(rename = "-")]
     goals_against: u32,
+
+    /// Total points
     #[tabled(rename = "Points")]
     points: u32,
+}
+
+impl Default for Team {
+    fn default() -> Self {
+        Team {
+            position: 0,
+            name: String::new(),
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goals_for: 0,
+            goals_against: 0,
+            points: 0,
+        }
+    }
 }
 
 fn parse_number_from_cell(cell: ElementRef) -> u32 {
@@ -32,7 +67,7 @@ fn parse_number_from_cell(cell: ElementRef) -> u32 {
         .unwrap_or(0)
 }
 
-fn parse_team_nane_from_cell(cell: ElementRef) -> String {
+fn parse_team_name_from_cell(cell: ElementRef) -> String {
     let span_selector = scraper::Selector::parse("span.table__typo--full").unwrap();
     if let Some(span) = cell.select(&span_selector).next() {
         span.text().collect::<Vec<_>>().join(" ").trim().to_string()
@@ -57,22 +92,18 @@ async fn main() -> anyhow::Result<(), anyhow::Error> {
 
     let mut teams: Vec<Team> = Vec::new();
 
-    for row in rows {
+    for (i, row) in rows.into_iter().enumerate() {
         let cells_selector = scraper::Selector::parse("td").unwrap();
         let cells = row.select(&cells_selector);
+
         let mut team = Team {
-            name: String::new(),
-            played: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            goals_for: 0,
-            goals_against: 0,
-            points: 0,
+            position: i,
+            ..Team::default()
         };
+
         for (index, cell) in cells.enumerate() {
             match index {
-                1 => team.name = parse_team_nane_from_cell(cell),
+                1 => team.name = parse_team_name_from_cell(cell),
                 2 => team.played = parse_number_from_cell(cell),
                 3 => team.wins = parse_number_from_cell(cell),
                 4 => team.draws = parse_number_from_cell(cell),
@@ -83,6 +114,7 @@ async fn main() -> anyhow::Result<(), anyhow::Error> {
                 _ => continue,
             }
         }
+
         if !team.name.is_empty() {
             teams.push(team);
         }
