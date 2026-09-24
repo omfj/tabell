@@ -120,15 +120,21 @@ fn parse_team_name_from_cell(cell: ElementRef) -> String {
 #[tokio::main]
 async fn main() -> anyhow::Result<(), anyhow::Error> {
     let args = std::env::args().collect::<Vec<String>>();
+    let command = args.get(1).map(|s| s.as_str()).unwrap_or("plain");
+    if command == "help" || command == "--help" || command == "-h" {
+        println!("Usage: {} [plain|ascii|rounded|modern]", args[0]);
+        return Ok(());
+    }
 
     let eliteserien = Eliteserien::new(TABLE_URL);
     let teams = eliteserien.get_table().await?;
 
     let mut table = Table::new(teams);
-    match args.get(1).map(|s| s.as_str()) {
-        Some("ascii") => table.with(Style::ascii()),
-        Some("rounded") => table.with(Style::ascii_rounded()),
-        Some("modern") => table.with(Style::modern()),
+    match command {
+        "plain" => table.with(Style::blank()),
+        "ascii" => table.with(Style::ascii()),
+        "rounded" => table.with(Style::ascii_rounded()),
+        "modern" => table.with(Style::modern()),
         _ => table.with(Style::ascii_rounded()),
     };
     println!("{table}");
