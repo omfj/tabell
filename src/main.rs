@@ -110,9 +110,10 @@ fn parse_number_from_cell(cell: ElementRef) -> u32 {
 
 fn parse_team_name_from_cell(cell: ElementRef) -> String {
     let selector = scraper::Selector::parse("span.table__typo--full").unwrap();
-    cell.select(&selector).next().map_or(String::new(), |span| {
-        span.text().collect::<Vec<_>>().join(" ").trim().to_string()
-    })
+    cell.select(&selector)
+        .next()
+        .map(|span| span.text().collect::<Vec<_>>().join(" ").trim().to_string())
+        .unwrap_or_default()
 }
 
 #[tokio::main]
